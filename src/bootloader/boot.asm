@@ -5,6 +5,7 @@ bits 16 ;we tell asm to emit 16 bits code
 
 ;
 ; FAT12 header
+; (The bootloader is written in FAT12 FS on the floppy disk, so it needs to have the FAT12 headers at the beginning)
 ;
 jmp short start
 nop
@@ -27,7 +28,7 @@ bdb_large_sectors_count:    dd 0
 ebr_drive_number:           db 0                    ; 0x00 floppy, 0x80 hdd, useless
                             db 0                    ; reserved
 ebr_signature:              db 29h
-ebr_volume_id:              db 12h, 34h, 56h, 78h   ;serial number
+ebr_volume_id:              db 12h, 34h, 56h, 78h   ; serial number
 ebr_volume_label:           db 'BAST OS    '        ; 11 bytes, padded with spaces
 ebr_system_id:              db 'FAT12   '           ; 8 bytes
 
