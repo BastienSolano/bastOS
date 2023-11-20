@@ -74,16 +74,135 @@ main:
     mov ss, ax ; stack segment
     mov sp, 0x7C00 ; stack pointer (beginner of the os because it grows downwards)
 
+    ; read something from the disk
+    mov dl, [ebr_drive_number]
+    mov ax, 1                       ; LBA address
+    mov cl, 1                       ; 1 sector to read
+    mov bx, 0x7E00                  ; data should be after the boot loader
+    call disk_read
+
     ; printing hello world
     mov si, msg_hello
     call puts
 
     hlt
+    
+floppy_error:
+    mov si, msg_read_failed
+    call puts
+    jmp wait_key_and_reboot
 
-.halt: ;in case the program continues executing after the halt, we put it in an infinite loop to make sure it doesn't
-    jmp .halt
+wait_key_and_reboot:
+    mov ah, 0
+    int 16h                             ; wait for key press
+    jmp 0FFFFh:0                        ; jumps to beginning of BIOS, rebooting
+
+.halt:
+    cli                                 ; disable interrupts to prevent OS from escaping halt
+    hlt
+    
+;
+; Disk routines
+;
+
+;
+; Convert LBA (virtual) to CHS (physical) adress on floppy disk
+; Parameters:
+;   - ax : LBA address
+; Returns:
+;   - cx [bits 0 to 5]  : sector number
+;   - cx [bits 6 to 15] : cylinder
+;   - dh [head]
+lba_to_chs:
+    push ax
+    push dx
+
+    xor dx, dx                          ; dx = 0
+    div word [bdb_sectors_per_track]    ; ax = LBA / SectorsPerTrack
+                                        ; dx = LBA % SectorsPerTrack
+    inc dx                              ; dx = ( LBA % SectorsPerTrack) + 1 = sector
+    mov cx, dx                          ; cx = sector
+    
+    xor dx, dx                          ; dx = 0
+    div word [bdb_heads]                ; ax = (LBA / SectorsPerTrack) / heads = cylinder
+                                        ; dx = (LBA / SectorsPerTrack) % heads = head
+    mov dh, dl                          ; result was in dl (1 byte) -> move to dh as expected
+    mov ch, al                          ; ch = cylinder (lower 8 bits)
+    shl ah, 6
+    or cl, ah
+    
+    ; cx is special because cylinder overlaps on CH and CL upper two bits
+    ; CX =       ---CH--- ---CL---
+    ; cylinder : 76543210 98
+    ; sector   :            543210
+    
+    pop ax
+    mov dl, al
+    pop ax
+    ret
+    
+;
+; Reads sectors from a disk
+; Parameters:
+;   - ax : LBA address
+;   - cl : number of sectors to read (up to 128)
+;   - es:bx : address in memory where to load the data
+;
+disk_read:
+    push ax
+    push bx
+    push cx
+    push dx
+    push di
+
+    push cx                             ; save cl
+    call lba_to_chs
+    pop ax                              ; al = number of sectors to read
+    mov ah, 02h
+    
+    mov di, 3
+    
+.retry:
+    pusha                               ; save all registers
+    stc                                 ; set carry flag
+    int 13h
+    jnc .done                           ; if carry is unset, operation successful
+    
+    ; disk read failed
+    popa
+    dec di
+    test di, di
+    jnz .retry
+    
+.fail:
+    ; all disk read attemps failed
+    jmp floppy_error
+    
+.done:
+    popa
+
+    pop di
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    
+    ret
+    
+;
+; Resets disk controller
+; Parameters:
+;   - dl : disk number
+disk_reset:
+    pusha
+    mov ah, 0
+    int 13h
+    jc floppy_error
+    popa
+    ret
 
 msg_hello: db 'Hello World!', ENDL, 0
+msg_read_failed: db 'Read from disk failed!', ENDL, 0
 
 times 510-($-$$) db 0;emits 0x00 510 - length_of_our_current_program times
 dw 0AA55h ;puts the OS signature (0xAA 0x55 16bits word)
