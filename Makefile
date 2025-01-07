@@ -2,8 +2,9 @@ ASM=nasm
 
 SRC_DIR=src
 BUILD_DIR=build
+TOOLS_DIR=tools
 
-.PHONY: all floppy_image kernel bootloader clean always run debug
+.PHONY: all floppy_image kernel bootloader clean always run debug tools_fat
 
 #
 # Floppy image
@@ -15,6 +16,7 @@ $(BUILD_DIR)/main_floppy.img: bootloader kernel
 	mkfs.fat -F 12 -n "NBOS" $(BUILD_DIR)/main_floppy.img
 	dd if=$(BUILD_DIR)/bootloader.bin of=$(BUILD_DIR)/main_floppy.img conv=notrunc
 	mcopy -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/kernel.bin "::kernel.bin"
+	mcopy -i $(BUILD_DIR)/main_floppy.img test.txt "::test.txt"
 
 #
 # Bootloader
@@ -40,6 +42,12 @@ $(BUILD_DIR)/kernel.bin: always
 #
 always:
 	mkdir -p $(BUILD_DIR)
+
+#
+# Tools
+#
+tools_fat:
+	gcc $(TOOLS_DIR)/fat/fat.c -o $(BUILD_DIR)/fat
 
 run:
 	qemu-system-i386 -fda $(BUILD_DIR)/main_floppy.img

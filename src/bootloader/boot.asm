@@ -31,6 +31,8 @@ ebr_volume_id:              db 12h, 34h, 56h, 78h   ; serial number
 ebr_volume_label:           db 'BAST OS    '        ; 11 bytes, padded with spaces
 ebr_system_id:              db 'FAT12   '           ; 8 bytes
 
+
+
 ;
 ; Code starts here
 ;
