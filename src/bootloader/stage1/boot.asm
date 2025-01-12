@@ -342,8 +342,8 @@ disk_reset:
 
 msg_loading: db 'Loading...', ENDL, 0
 msg_read_failed: db 'Disk read fail', ENDL, 0
-msg_kernel_not_found: db 'Kernel not found', ENDL, 0
-file_kernel_bin: db 'KERNEL  BIN'  ; no need to null-terminate because it's always 11 characters long
+msg_kernel_not_found: db 'STAGE2.BIN not found', ENDL, 0
+file_kernel_bin: db 'STAGE2  BIN'  ; no need to null-terminate because it's always 11 characters long
 kernel_cluster: dw 0
 
 KERNEL_LOAD_SEGMENT equ 0x2000

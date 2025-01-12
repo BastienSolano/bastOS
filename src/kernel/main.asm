@@ -1,48 +1,45 @@
-org 0x00
+org 0x0
 bits 16
 
-%define ENDL 0x0D, 0x0A ; macro to define the endline character
+
+%define ENDL 0x0D, 0x0A
 
 
-main:
-   ; print hello world message
-  mov si, msg_hello
-  call puts
-
+start:
+    ; print hello world message
+    mov si, msg_hello
+    call puts
 
 .halt:
-  cli
-  hlt
-
+    cli
+    hlt
 
 ;
 ; Prints a string to the screen
 ; Params:
-;   - ds/si points to the string
+;   - ds:si points to string
 ;
 puts:
-  ; save registers we will modify
-  push si
-  push ax
-  push bx
+    ; save registers we will modify
+    push si
+    push ax
+    push bx
 
 .loop:
-  lodsb   ; load next character from location ds/si into al register
-  or al, al ; verify if next character is null (zero flag would be set then)
-  jz .done
+    lodsb               ; loads next character in al
+    or al, al           ; verify if next character is null?
+    jz .done
 
-  mov ah, 0x0e
-  mov bh, 0
-  int 0x10
+    mov ah, 0x0E        ; call bios interrupt
+    mov bh, 0           ; set page number to 0
+    int 0x10
 
-  jmp .loop
+    jmp .loop
 
 .done:
-  pop bx
-  pop ax
-  pop si
-  ret
+    pop bx
+    pop ax
+    pop si    
+    ret
 
-
-
-msg_hello: db 'Hello, World from kernel!', ENDL, 0
+msg_hello: db 'Hello world from KERNEL!', ENDL, 0
