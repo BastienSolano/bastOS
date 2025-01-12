@@ -32,3 +32,43 @@ _x86_Video_WriteCharTeletype:
     mov sp, bp
     pop bp
     ret
+
+
+;
+; Performs a division with 64bits dividend and 32 bits divisor
+; (cannot be performed by x86 div instruction in 16 bits real mode)
+; input  args: dividend (64b), divisor (32b)
+; output args: offset of quotient (64b), offset of remainder (64b)
+;
+global _x86_div64_32
+_x86_div64_32:
+    push bp
+    mov bp, sp
+
+    ; save registers (ax, cx, dx are saved by the caller per _decl convention)
+    push bx
+
+    xor edx, edx ; edx = 0 (clear remainder beforehand)
+    mov eax, [bp+8] ; loading the 32 upper bit of the dividend into eax
+    mov ecx, [bp+12] ; loading divisor into ecx
+    div ecx          ; eax = upper 32 of dividend / divisor
+                     ; edx = upper 32 of dividend % divisor
+
+    mov bx, [bp+16]  ; first ouptut arg, which is the adr of oDividend
+    mov [bx+4], eax  ; upper 32b of oQuotient = upper 32 of dividend / divisor
+
+    mov eax, [bp+4]  ; eax = lower 32b of dividend
+                     ; edx = old remainder
+    div ecx          ; eax = (rem of 1st div + lower 32b of dividend) / divisor
+                     ; edx = (rem of 1st div + lower 32b of dividend) % divisor
+
+    mov [bx], eax    ; upper 32b of oQuotient = (rem of 1st div + lower 32b of dividend) / divisor
+    mov bx, [bp+18]  ; bx = adr of oRemainder
+    mov [bx], edx
+
+    ; restore registers
+    pop bx
+
+    mov sp, bp
+    pop bp
+    ret
